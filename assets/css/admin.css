@@ -1,0 +1,260 @@
+.hupuna-els-wrap {
+    max-width: 1200px;
+}
+
+.hupuna-els-header {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.hupuna-els-header code {
+    background: #f0f0f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.hupuna-els-actions {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#hupuna-scan-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    font-size: 14px;
+}
+
+#hupuna-scan-button .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.hupuna-scan-status {
+    font-weight: 600;
+    color: #2271b1;
+}
+
+.hupuna-scan-status.scanning {
+    color: #d63638;
+}
+
+.hupuna-scan-status.completed {
+    color: #00a32a;
+}
+
+.hupuna-scan-results {
+    margin-top: 30px;
+}
+
+.hupuna-results-summary {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.hupuna-results-summary h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.hupuna-results-summary p {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.hupuna-results-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ccd0d4;
+}
+
+.tab-button {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #50575e;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.tab-button:hover {
+    color: #2271b1;
+}
+
+.tab-button.active {
+    color: #2271b1;
+    border-bottom-color: #2271b1;
+}
+
+.hupuna-results-content {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.hupuna-link-group {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.hupuna-link-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.hupuna-link-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+}
+
+.hupuna-link-url {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2271b1;
+    word-break: break-all;
+}
+
+.hupuna-link-count {
+    background: #2271b1;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.hupuna-link-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background: #f9f9f9;
+    border-left: 3px solid #2271b1;
+    border-radius: 4px;
+}
+
+.hupuna-link-item-info {
+    flex: 1;
+}
+
+.hupuna-link-item-type {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 8px;
+}
+
+.hupuna-link-item-type.post {
+    background: #00a32a;
+}
+
+.hupuna-link-item-type.page {
+    background: #d63638;
+}
+
+.hupuna-link-item-type.comment {
+    background: #dba617;
+}
+
+.hupuna-link-item-type.widget {
+    background: #8c8f94;
+}
+
+.hupuna-link-item-title {
+    font-weight: 600;
+    color: #1d2327;
+    margin-bottom: 5px;
+}
+
+.hupuna-link-item-text {
+    font-size: 13px;
+    color: #646970;
+    font-style: italic;
+}
+
+.hupuna-link-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.hupuna-link-button {
+    padding: 6px 12px;
+    text-decoration: none;
+    border-radius: 3px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.hupuna-link-button.view {
+    background: #2271b1;
+    color: #fff;
+}
+
+.hupuna-link-button.view:hover {
+    background: #135e96;
+    color: #fff;
+}
+
+.hupuna-link-button.edit {
+    background: #f0f0f1;
+    color: #1d2327;
+}
+
+.hupuna-link-button.edit:hover {
+    background: #dcdcde;
+    color: #1d2327;
+}
+
+.hupuna-link-button.external {
+    background: #00a32a;
+    color: #fff;
+}
+
+.hupuna-link-button.external:hover {
+    background: #008a20;
+    color: #fff;
+}
+
+.hupuna-no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: #646970;
+}
+
+.hupuna-no-results .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #c3c4c7;
+    margin-bottom: 15px;
+}
+
