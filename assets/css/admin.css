@@ -189,10 +189,40 @@
     background: #8c8f94;
 }
 
+.hupuna-link-item-type.menu {
+    background: #9b59b6;
+}
+
+.hupuna-link-item-type.term {
+    background: #e67e22;
+}
+
+.hupuna-link-item-type.option {
+    background: #34495e;
+}
+
+.hupuna-link-item-type.product {
+    background: #e74c3c;
+}
+
+.hupuna-link-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #646970;
+    color: #fff;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: lowercase;
+    margin-left: 8px;
+    font-family: monospace;
+}
+
 .hupuna-link-item-title {
     font-weight: 600;
     color: #1d2327;
     margin-bottom: 5px;
+    margin-top: 5px;
 }
 
 .hupuna-link-item-text {
@@ -256,5 +286,93 @@
     height: 48px;
     color: #c3c4c7;
     margin-bottom: 15px;
+}
+
+.hupuna-pagination-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.hupuna-pagination-controls label {
+    font-weight: 600;
+    color: #1d2327;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hupuna-pagination-controls select {
+    padding: 4px 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 3px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.hupuna-pagination-wrapper {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.hupuna-pagination-info {
+    color: #646970;
+    font-size: 14px;
+}
+
+.hupuna-pagination {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.hupuna-page-link {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid #ccd0d4;
+    border-radius: 3px;
+    background: #fff;
+    color: #2271b1;
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.hupuna-page-link:hover {
+    background: #f0f0f1;
+    border-color: #8c8f94;
+}
+
+.hupuna-page-link.current {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+    cursor: default;
+}
+
+.hupuna-page-link.disabled {
+    color: #c3c4c7;
+    cursor: not-allowed;
+    background: #f6f7f7;
+}
+
+.hupuna-page-link.disabled:hover {
+    background: #f6f7f7;
+    border-color: #ccd0d4;
+}
+
+.hupuna-page-ellipsis {
+    padding: 6px 8px;
+    color: #646970;
 }
 
