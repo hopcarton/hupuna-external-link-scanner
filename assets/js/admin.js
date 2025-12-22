@@ -2,341 +2,238 @@
     'use strict';
     
     $(document).ready(function() {
-        // Khai báo biến
+        // Elements
         var $scanButton = $('#hupuna-scan-button');
-        var $scanStatus = $('#hupuna-scan-status');
+        var $progressWrap = $('#hupuna-progress-wrap');
+        var $progressFill = $('.hupuna-progress-fill');
+        var $progressText = $('#hupuna-progress-text');
         var $results = $('#hupuna-scan-results');
         var $resultsContent = $('#hupuna-results-content');
-        var $tabButtons = $('.tab-button');
+        
+        // State
+        var allResults = [];
+        var isScanning = false;
+        var scanQueue = [];
+        var totalStepsInitial = 0;
+        
+        // Pagination & Tabs
         var currentTab = 'grouped';
         var currentPage = 1;
         var itemsPerPage = 20;
         
-        // Xử lý click nút quét
+        // --- Core Scanning Logic ---
+        
+        function buildScanQueue() {
+            var queue = [];
+            
+            // 1. Post Types
+            var postTypes = hupunaEls.postTypes; 
+            if (!Array.isArray(postTypes)) {
+                postTypes = Object.values(postTypes);
+            }
+            
+            $.each(postTypes, function(i, type) {
+                queue.push({
+                    step: 'post_type',
+                    sub_step: type,
+                    page: 1,
+                    label: 'Scanning Post Type: ' + type
+                });
+            });
+            
+            // 2. Comments
+            queue.push({ step: 'comment', page: 1, label: 'Scanning Comments...' });
+            
+            // 3. Options
+            queue.push({ step: 'option', page: 1, label: 'Scanning Options...' });
+            
+            return queue;
+        }
+        
         $scanButton.on('click', function() {
-            if ($(this).hasClass('scanning')) {
+            if (isScanning) return;
+            
+            isScanning = true;
+            allResults = [];
+            $scanButton.prop('disabled', true).text('Scanning...');
+            $results.hide();
+            $progressWrap.show();
+            
+            scanQueue = buildScanQueue();
+            totalStepsInitial = scanQueue.length;
+            
+            processQueue();
+        });
+        
+        function processQueue() {
+            if (scanQueue.length === 0) {
+                finishScan();
                 return;
             }
             
-            $(this).addClass('scanning').prop('disabled', true);
-            $scanStatus.text(hupunaEls.scanning).addClass('scanning');
-            $results.hide();
+            var currentTask = scanQueue[0];
+            var progressPercent = 100 - ((scanQueue.length / totalStepsInitial) * 100);
+            if (progressPercent < 2) progressPercent = 2;
+            
+            updateProgress(progressPercent, currentTask.label + ' (Page ' + currentTask.page + ')');
             
             $.ajax({
                 url: hupunaEls.ajaxUrl,
                 type: 'POST',
                 data: {
-                    action: 'hupuna_scan_links',
-                    nonce: hupunaEls.nonce
+                    action: 'hupuna_scan_batch',
+                    nonce: hupunaEls.nonce,
+                    step: currentTask.step,
+                    sub_step: currentTask.sub_step || '',
+                    page: currentTask.page
                 },
                 success: function(response) {
                     if (response.success) {
-                        displayResults(response.data);
-                        $scanStatus.text(hupunaEls.completed).removeClass('scanning').addClass('completed');
+                        if (response.data.results && response.data.results.length > 0) {
+                            allResults = allResults.concat(response.data.results);
+                        }
+                        
+                        if (response.data.done) {
+                            scanQueue.shift(); // Task complete
+                        } else {
+                            scanQueue[0].page++; // Next page
+                        }
+                        
+                        processQueue(); // Recursive call
+                        
                     } else {
-                        alert('Error: ' + (response.data.message || 'Unable to scan links.'));
-                        $scanStatus.text('').removeClass('scanning completed');
+                        handleError(response.data.message);
                     }
                 },
-                error: function() {
-                    alert('Error: Unable to connect to server.');
-                    $scanStatus.text('').removeClass('scanning completed');
-                },
-                complete: function() {
-                    $scanButton.removeClass('scanning').prop('disabled', false);
+                error: function(xhr, status, error) {
+                    handleError('Server connection failed: ' + error);
                 }
             });
-        });
+        }
         
-        // Xử lý chuyển tab
-        $tabButtons.on('click', function() {
-            var tab = $(this).data('tab');
-            $tabButtons.removeClass('active');
+        function handleError(msg) {
+            console.error('Scan Error:', msg);
+            alert('Error: ' + msg);
+            isScanning = false;
+            $scanButton.prop('disabled', false).text('Start Scan');
+            $progressText.text('Error encountered.');
+        }
+        
+        function updateProgress(percent, text) {
+            $progressFill.css('width', percent + '%');
+            $progressText.text(text);
+        }
+        
+        function finishScan() {
+            isScanning = false;
+            updateProgress(100, 'Scan Completed!');
+            $scanButton.prop('disabled', false).html('<span class="dashicons dashicons-search"></span> Start Scan');
+            displayResults(allResults);
+        }
+
+        // --- UI & Display Logic ---
+        
+        $('.tab-button').on('click', function() {
+            $('.tab-button').removeClass('active');
             $(this).addClass('active');
-            currentTab = tab;
+            currentTab = $(this).data('tab');
             currentPage = 1;
-            
-            if (window.scanResults) {
-                displayResults(window.scanResults);
-            }
+            renderCurrentPage();
         });
         
-        // Xử lý thay đổi items per page
-        $(document).on('change', '#hupuna-items-per-page', function() {
-            itemsPerPage = parseInt($(this).val());
-            currentPage = 1;
-            if (window.scanResults) {
-                displayResults(window.scanResults);
-            }
-        });
-        
-        // Xử lý phân trang
-        $(document).on('click', '.hupuna-pagination a', function(e) {
-            e.preventDefault();
-            var page = $(this).data('page');
-            if (page) {
-                currentPage = page;
-                if (window.scanResults) {
-                    displayResults(window.scanResults);
-                }
-            }
-        });
-        
-        /**
-         * Hiển thị kết quả quét
-         */
         function displayResults(data) {
-            window.scanResults = data;
+            window.rawResults = data;
             
-            $('#total-links').text(data.total);
-            $('#unique-links').text(data.unique);
-            
-            if (data.total === 0) {
-                $resultsContent.html(
-                    '<div class="hupuna-no-results">' +
-                    '<span class="dashicons dashicons-yes-alt"></span>' +
-                    '<p><strong>No external links found!</strong></p>' +
-                    '<p>All links point to the current domain.</p>' +
-                    '</div>'
-                );
-            } else {
-                // Thêm controls phân trang
-                var paginationControls = '<div class="hupuna-pagination-controls">' +
-                    '<label>Items per page: ' +
-                    '<select id="hupuna-items-per-page">' +
-                    '<option value="10"' + (itemsPerPage === 10 ? ' selected' : '') + '>10</option>' +
-                    '<option value="20"' + (itemsPerPage === 20 ? ' selected' : '') + '>20</option>' +
-                    '<option value="50"' + (itemsPerPage === 50 ? ' selected' : '') + '>50</option>' +
-                    '<option value="100"' + (itemsPerPage === 100 ? ' selected' : '') + '>100</option>' +
-                    '</select>' +
-                    '</label>' +
-                    '</div>';
-                
-                if (currentTab === 'grouped') {
-                    displayGroupedResults(data.grouped, paginationControls);
-                } else {
-                    displayAllResults(data.results, paginationControls);
+            // Group by URL
+            window.groupedResults = {};
+            $.each(data, function(i, item) {
+                if (!window.groupedResults[item.url]) {
+                    window.groupedResults[item.url] = { url: item.url, occurrences: [] };
                 }
-            }
+                window.groupedResults[item.url].occurrences.push(item);
+            });
+            
+            $('#total-links').text(data.length);
+            $('#unique-links').text(Object.keys(window.groupedResults).length);
             
             $results.show();
+            renderCurrentPage();
         }
         
-        /**
-         * Hiển thị kết quả nhóm theo URL
-         */
-        function displayGroupedResults(grouped, paginationControls) {
-            var html = paginationControls;
+        function renderCurrentPage() {
+            var html = '';
+            var list = [];
             
-            // Chuyển grouped object thành array để phân trang
-            var groupsArray = [];
-            $.each(grouped, function(url, group) {
-                groupsArray.push({url: url, group: group});
-            });
+            if (currentTab === 'grouped') {
+                list = Object.values(window.groupedResults);
+            } else {
+                list = window.rawResults;
+            }
             
-            var totalGroups = groupsArray.length;
-            var totalPages = Math.ceil(totalGroups / itemsPerPage);
-            var startIndex = (currentPage - 1) * itemsPerPage;
-            var endIndex = startIndex + itemsPerPage;
-            var paginatedGroups = groupsArray.slice(startIndex, endIndex);
+            if (list.length === 0) {
+                $resultsContent.html('<div class="hupuna-no-results">No external links found. Great job!</div>');
+                return;
+            }
             
-            $.each(paginatedGroups, function(index, item) {
-                var url = item.url;
-                var group = item.group;
-                
-                html += '<div class="hupuna-link-group">';
-                html += '<div class="hupuna-link-group-header">';
-                html += '<a href="' + escapeHtml(url) + '" target="_blank" class="hupuna-link-url">' + escapeHtml(url) + '</a>';
-                html += '<span class="hupuna-link-count">' + group.occurrences.length + ' occurrences</span>';
-                html += '</div>';
-                
-                $.each(group.occurrences, function(index, item) {
-                    html += '<div class="hupuna-link-item">';
-                    html += '<div class="hupuna-link-item-info">';
-                    html += '<span class="hupuna-link-item-type ' + item.type + '">' + item.type + '</span>';
-                    if (item.tag) {
-                        html += '<span class="hupuna-link-tag">' + escapeHtml(item.tag) + '</span>';
-                    }
-                    html += '<div class="hupuna-link-item-title">' + escapeHtml(item.title) + '</div>';
-                    if (item.location) {
-                        var locationText = '';
-                        switch(item.location) {
-                            case 'content':
-                                locationText = 'Location: Post Content';
-                                break;
-                            case 'excerpt':
-                                locationText = 'Location: Excerpt';
-                                break;
-                            case 'meta':
-                                locationText = 'Location: Custom Field' + (item.meta_key ? ' (' + escapeHtml(item.meta_key) + ')' : '');
-                                break;
-                        }
-                        if (locationText) {
-                            html += '<div class="hupuna-link-item-text" style="color: #d63638; font-weight: 600;">' + locationText + '</div>';
-                        }
-                    }
-                    if (item.tag && item.attribute) {
-                        html += '<div class="hupuna-link-item-text">Tag: &lt;' + escapeHtml(item.tag) + '&gt; - Attribute: ' + escapeHtml(item.attribute) + '</div>';
-                    }
-                    if (item.link_text) {
-                        html += '<div class="hupuna-link-item-text">Text: "' + escapeHtml(item.link_text) + '"</div>';
-                    }
-                    html += '</div>';
-                    html += '<div class="hupuna-link-item-actions">';
-                    if (item.view_url) {
-                        html += '<a href="' + escapeHtml(item.view_url) + '" target="_blank" class="hupuna-link-button view">View</a>';
-                    }
-                    if (item.edit_url) {
-                        html += '<a href="' + escapeHtml(item.edit_url) + '" class="hupuna-link-button edit">Edit</a>';
-                    }
-                    html += '<a href="' + escapeHtml(item.url) + '" target="_blank" class="hupuna-link-button external">Open Link</a>';
-                    html += '</div>';
+            // Client-side Pagination
+            var totalItems = list.length;
+            var totalPages = Math.ceil(totalItems / itemsPerPage);
+            var start = (currentPage - 1) * itemsPerPage;
+            var end = start + itemsPerPage;
+            var pageItems = list.slice(start, end);
+            
+            // Render List
+            if (currentTab === 'grouped') {
+                $.each(pageItems, function(i, group) {
+                    html += '<div class="hupuna-link-group">';
+                    html += '<div class="hupuna-link-group-header"><strong>' + escapeHtml(group.url) + '</strong> <span class="hupuna-link-count">' + group.occurrences.length + '</span></div>';
+                    $.each(group.occurrences, function(j, item) {
+                        html += renderItemRow(item);
+                    });
                     html += '</div>';
                 });
-                
-                html += '</div>';
-            });
+            } else {
+                $.each(pageItems, function(i, item) {
+                    html += renderItemRow(item);
+                });
+            }
             
-            // Thêm phân trang
-            html += generatePagination(totalPages, currentPage, totalGroups, startIndex + 1, Math.min(endIndex, totalGroups));
+            // Render Pagination
+            if (totalPages > 1) {
+                html += '<div class="hupuna-pagination">';
+                if (currentPage > 1) html += '<button class="button" onclick="window.changeHupunaPage('+(currentPage-1)+')">&laquo; Prev</button>';
+                html += '<span>Page ' + currentPage + ' of ' + totalPages + '</span>';
+                if (currentPage < totalPages) html += '<button class="button" onclick="window.changeHupunaPage('+(currentPage+1)+')">Next &raquo;</button>';
+                html += '</div>';
+            }
             
             $resultsContent.html(html);
         }
         
-        /**
-         * Hiển thị tất cả kết quả
-         */
-        function displayAllResults(results, paginationControls) {
-            var html = paginationControls;
-            
-            var totalItems = results.length;
-            var totalPages = Math.ceil(totalItems / itemsPerPage);
-            var startIndex = (currentPage - 1) * itemsPerPage;
-            var endIndex = startIndex + itemsPerPage;
-            var paginatedResults = results.slice(startIndex, endIndex);
-            
-            $.each(paginatedResults, function(index, item) {
-                html += '<div class="hupuna-link-item">';
-                html += '<div class="hupuna-link-item-info">';
-                html += '<span class="hupuna-link-item-type ' + item.type + '">' + item.type + '</span>';
-                if (item.tag) {
-                    html += '<span class="hupuna-link-tag">' + escapeHtml(item.tag) + '</span>';
-                }
-                html += '<div class="hupuna-link-item-title">' + escapeHtml(item.title) + '</div>';
-                html += '<div class="hupuna-link-item-text">URL: <a href="' + escapeHtml(item.url) + '" target="_blank">' + escapeHtml(item.url) + '</a></div>';
-                if (item.location) {
-                    var locationText = '';
-                    switch(item.location) {
-                        case 'content':
-                            locationText = 'Location: Post Content';
-                            break;
-                        case 'excerpt':
-                            locationText = 'Location: Excerpt';
-                            break;
-                        case 'meta':
-                            locationText = 'Location: Custom Field' + (item.meta_key ? ' (' + escapeHtml(item.meta_key) + ')' : '');
-                            break;
-                    }
-                    if (locationText) {
-                        html += '<div class="hupuna-link-item-text" style="color: #d63638; font-weight: 600;">' + locationText + '</div>';
-                    }
-                }
-                if (item.tag && item.attribute) {
-                    html += '<div class="hupuna-link-item-text">Tag: &lt;' + escapeHtml(item.tag) + '&gt; - Attribute: ' + escapeHtml(item.attribute) + '</div>';
-                }
-                if (item.link_text) {
-                    html += '<div class="hupuna-link-item-text">Text: "' + escapeHtml(item.link_text) + '"</div>';
-                }
-                html += '</div>';
-                html += '<div class="hupuna-link-item-actions">';
-                if (item.view_url) {
-                    html += '<a href="' + escapeHtml(item.view_url) + '" target="_blank" class="hupuna-link-button view">View</a>';
-                }
-                if (item.edit_url) {
-                    html += '<a href="' + escapeHtml(item.edit_url) + '" class="hupuna-link-button edit">Edit</a>';
-                }
-                html += '<a href="' + escapeHtml(item.url) + '" target="_blank" class="hupuna-link-button external">Open Link</a>';
-                html += '</div>';
-                html += '</div>';
-            });
-            
-            // Thêm phân trang
-            html += generatePagination(totalPages, currentPage, totalItems, startIndex + 1, Math.min(endIndex, totalItems));
-            
-            $resultsContent.html(html);
+        function renderItemRow(item) {
+            return '<div class="hupuna-link-item">' +
+                   '<span class="hupuna-link-item-type ' + item.type + '">' + item.type + '</span> ' +
+                   '<div class="info">' +
+                       '<div class="title">' + escapeHtml(item.title) + '</div>' +
+                       '<div class="meta">Location: ' + item.location + ' | Tag: &lt;' + item.tag + '&gt;</div>' +
+                   '</div>' +
+                   '<div class="actions">' +
+                       (item.edit_url ? '<a href="' + item.edit_url + '" target="_blank" class="button button-small">Edit</a>' : '') +
+                       (item.view_url ? '<a href="' + item.view_url + '" target="_blank" class="button button-small">View</a>' : '') +
+                   '</div>' +
+                   '</div>';
         }
         
-        /**
-         * Tạo HTML phân trang
-         */
-        function generatePagination(totalPages, currentPage, totalItems, startItem, endItem) {
-            if (totalPages <= 1) {
-                return '<div class="hupuna-pagination-info">Showing ' + totalItems + ' result' + (totalItems !== 1 ? 's' : '') + '</div>';
-            }
-            
-            var html = '<div class="hupuna-pagination-wrapper">';
-            html += '<div class="hupuna-pagination-info">Showing ' + startItem + ' to ' + endItem + ' of ' + totalItems + ' results</div>';
-            html += '<div class="hupuna-pagination">';
-            
-            // Previous button
-            if (currentPage > 1) {
-                html += '<a href="#" class="hupuna-page-link" data-page="' + (currentPage - 1) + '">&laquo; Previous</a>';
-            } else {
-                html += '<span class="hupuna-page-link disabled">&laquo; Previous</span>';
-            }
-            
-            // Page numbers
-            var startPage = Math.max(1, currentPage - 2);
-            var endPage = Math.min(totalPages, currentPage + 2);
-            
-            if (startPage > 1) {
-                html += '<a href="#" class="hupuna-page-link" data-page="1">1</a>';
-                if (startPage > 2) {
-                    html += '<span class="hupuna-page-ellipsis">...</span>';
-                }
-            }
-            
-            for (var i = startPage; i <= endPage; i++) {
-                if (i === currentPage) {
-                    html += '<span class="hupuna-page-link current">' + i + '</span>';
-                } else {
-                    html += '<a href="#" class="hupuna-page-link" data-page="' + i + '">' + i + '</a>';
-                }
-            }
-            
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    html += '<span class="hupuna-page-ellipsis">...</span>';
-                }
-                html += '<a href="#" class="hupuna-page-link" data-page="' + totalPages + '">' + totalPages + '</a>';
-            }
-            
-            // Next button
-            if (currentPage < totalPages) {
-                html += '<a href="#" class="hupuna-page-link" data-page="' + (currentPage + 1) + '">Next &raquo;</a>';
-            } else {
-                html += '<span class="hupuna-page-link disabled">Next &raquo;</span>';
-            }
-            
-            html += '</div>';
-            html += '</div>';
-            
-            return html;
-        }
+        window.changeHupunaPage = function(page) {
+            currentPage = page;
+            renderCurrentPage();
+        };
         
-        /**
-         * Escape HTML để tránh XSS
-         */
         function escapeHtml(text) {
-            var map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+            if (!text) return '';
+            return text.replace(/[&<>"']/g, function(m) { 
+                return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[m]; 
+            });
         }
     });
 })(jQuery);
-
