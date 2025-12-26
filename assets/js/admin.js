@@ -294,6 +294,15 @@
          * @return {string} HTML string.
          */
         function renderItemRow(item) {
+            // Security warning styling
+            var riskStyle = '';
+            var riskBadge = '';
+            
+            if (item.is_safe === false) {
+                riskStyle = 'style="background-color: #ffe6e6;"';
+                riskBadge = '<span class="badge" style="background: #d63638; color: white; padding: 2px 5px; border-radius: 3px; font-size: 10px; margin-left: 5px; font-weight: normal;">⚠️ ' + escapeHtml(item.risk_type || 'UNSAFE') + '</span>';
+            }
+            
             var actionsHtml = '';
             if (item.edit_url || item.view_url) {
                 actionsHtml = '<div style="display: flex; gap: 5px; flex-wrap: wrap;">';
@@ -306,9 +315,9 @@
                 actionsHtml += '</div>';
             }
             
-            return '<tr>' +
+            return '<tr ' + riskStyle + '>' +
                    '<td style="padding:6px;"><code>' + escapeHtml(item.type) + '</code></td>' +
-                   '<td style="padding:6px;"><strong>' + escapeHtml(item.title) + '</strong></td>' +
+                   '<td style="padding:6px;"><strong>' + escapeHtml(item.title) + '</strong>' + riskBadge + '</td>' +
                    '<td style="padding:6px;">' + escapeHtml(item.location) + '</td>' +
                    '<td style="padding:6px;"><code>&lt;' + escapeHtml(item.tag) + '&gt;</code></td>' +
                    '<td style="padding:6px; white-space: nowrap;">' + actionsHtml + '</td>' +
